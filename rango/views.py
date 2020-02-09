@@ -8,6 +8,7 @@ from django.urls import reverse
 from rango.forms import UserForm, UserProfileForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from datetime import datetime
 
 from django.http import HttpResponse
 
@@ -19,8 +20,11 @@ def index(request):
 	context_dict['boldmessage'] = 'Crunchy, creamy, cookie, candy, cupcake!'
 	context_dict['categories'] = category_list
 	context_dict['pages'] = page_list
+
+	response = render(request, 'rango/index.html', context=context_dict)
+	visitor_cookie_handler(request, response)
 	# Render the response and send it back!
-	return render(request, 'rango/index.html', context=context_dict)
+	return response
 
 def about(request):
 	context_dict = {'boldmessage': 'Crunchy, creamy, cookie, candy, cupcake!'}
@@ -150,3 +154,14 @@ def user_logout(request):
 	logout(request)
 	return redirect(reverse('rango:index'))
 
+def visitor_cookie_handler(request, response):
+	visits = int(request.COOKIES.get('visits', '1'))
+	last_visit_cookie = request.COOKIES.get('last_visit', str(datetime.now()))
+	last_visit_time = datetime.strptime(last_visit_cookie[:-7],
+		'%Y-%m-%d %H:%M:%S')
+	if (datetime.now() - last_visit_time).days > 0:
+		visits = visits + 1
+		response.set_cookie('last_visit', str(datetime.now()))
+	else:
+		response.set_cookie('last_visit', last_visit_cookie)
+	response.set_cookie('visits', visits)
